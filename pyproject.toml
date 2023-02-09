@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tinypipeline"
+version = "0.1.0"
+authors = [
+    {name = "Freddie Vargus", email = "fjv41995@gmail.com"},
+]
+description = "A tiny mlops library for building machine learning pipelines on your local machine."
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["mlops", "machine learning", "pipelines"]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+]
