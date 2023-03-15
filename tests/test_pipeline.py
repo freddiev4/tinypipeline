@@ -54,6 +54,58 @@ def test_pipeline_completion():
     mock_step_2.assert_called_once()
     mock_step_3.assert_called_once()
 
+def test_pipeline_completion_using_step_decorator():
+    """
+    Test that the pipeline runs all the steps in the correct order,
+    using the step decorator instead of the step function.
+    """
+    mock_step_1 = Mock()
+    mock_step_2 = Mock()
+    mock_step_3 = Mock()
+
+    mock_step_1.return_value = "step 1"
+    mock_step_2.return_value = "step 2"
+    mock_step_3.return_value = "step 3"
+
+    @step(
+        name="step_one",
+        description="Step one",
+        version="1.0.0",
+    )
+    def step_one():
+        mock_step_1()
+
+    @step(
+        name="step_two",
+        description="Step two",
+        version="1.0.0",
+    )
+    def step_two():
+        mock_step_2()
+
+    @step(
+        name="step_three",
+        description="Step three",
+        version="1.0.0",
+    )
+    def step_three():
+        mock_step_3()
+
+    @pipeline(
+        name="test_pipeline",
+        description="Test pipeline",
+        version="1.0.0",
+    )
+    def test_pipeline():
+        return [step_one, step_two, step_three]
+
+    pipe = test_pipeline()
+    pipe.run()
+
+    assert len(pipe.steps) == 3
+    mock_step_1.assert_called_once()
+    mock_step_2.assert_called_once()
+    mock_step_3.assert_called_once() 
 
 def test_pipeline_failure_no_function_passed():
     """
@@ -97,7 +149,8 @@ def test_pipeline_failure_invalid_step():
         pipe.run()
 
     assert (
-        "Not a valid step. Consider using the step() method to create steps for your pipeline."
+        "Not a valid step. Consider using the step decorator to "
+        "create steps for your pipeline."
         == str(context.value)
     )
 
@@ -145,7 +198,8 @@ def test_pipeline_failure_no_steps_to_run():
 
 def test_pipeline_failure_exception_in_step():
     """
-    Test that the pipeline fails with an Exception if there is an exception in one of the steps.
+    Test that the pipeline fails with an Exception if there is an exception
+    in one of the steps.
 
     Also check that the error message is correct.
     """
