@@ -37,13 +37,13 @@ class Step:
 
 
 def step(
-    callable: Callable,
     name: str,
     version: str,
     description: str,
+    callable: Callable = None,
 ):
     """
-    Create a step for a pipeline.
+    Create a step for a pipeline. Can be used as a decorator or a function.
 
     Params
     ------
@@ -56,10 +56,27 @@ def step(
     description: str
         A description of the step.
     """
-    _step = Step(
-        callable=callable,
-        name=name,
-        version=version,
-        description=description,
-    )
-    return _step
+    if callable is not None:
+        print(
+            f"WARNING: step() is being used as a function for {name}. "
+            "This is deprecated and will be removed in a future version. "
+            "Please use step() as a decorator instead."
+        )
+
+        _step = Step(
+            callable=callable,
+            name=name,
+            version=version,
+            description=description,
+        )
+        return _step
+    
+    def decorator(callable):
+        _step = Step(
+            callable=callable,
+            name=name,
+            version=version,
+            description=description,
+        )
+        return _step
+    return decorator

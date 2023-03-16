@@ -14,7 +14,7 @@ $ pip install tinypipeline
 
 `tinypipeline` exposes two main objects:
 - `pipeline`: a decorator for defining your pipeline. Returns a `Pipeline` instance.
-- `step`: a function that is used to define individual pipeline steps. Returns a `Step` instance.
+- `step`: a decorator that is used to define individual pipeline steps. Returns a `Step` instance.
 
 Each object requires you provide a `name`, `version`, and `description` to explicitly define what pipeline you're creating.
 
@@ -27,11 +27,12 @@ If you'd like to use this package, you can follow the `example.py` below:
 ```python
 from tinypipeline import pipeline, step
 
-
-def step_fn_one():
+@step(name='step_one', version='0.0.1', description='first step')
+def step_one():
     print("Step function one")
 
-def step_fn_two():
+@step(name='step_two', version='0.0.1', description='second step')
+def step_two():
     print("Step function two")
 
 @pipeline(
@@ -40,18 +41,6 @@ def step_fn_two():
     description='a test tinypipeline',
 )
 def pipe():
-    step_one = step(
-        callable=step_fn_one, 
-        name='step_one', 
-        version='0.0.1', 
-        description='first step',
-    )
-    step_two = step(
-        name='step_two',
-        version='0.0.1',
-        description='second step',
-        callable=step_fn_two,
-    )
     return [step_one, step_two]
 
 pipe = pipe()

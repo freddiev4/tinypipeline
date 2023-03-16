@@ -55,7 +55,8 @@ class Pipeline:
 
         if not all(isinstance(s, Step) for s in _steps):
             raise TypeError(
-                "Not a valid step. Consider using the step() method to create steps for your pipeline."
+                "Not a valid step. Consider using the step decorator "
+                "to create steps for your pipeline."
             )
 
         return _steps
@@ -86,7 +87,7 @@ class Pipeline:
 
                 completion_time = (end - start).total_seconds()
                 print(f"Step [{step.name}] completed in {completion_time} seconds\n")
-            except Exception as e:
+            except Exception:
                 print(f"Pipeline failed due to an exception in step [{step.name}]")
                 raise
         return None
@@ -119,7 +120,8 @@ def pipeline(
             """
             if not isinstance(func, Callable):
                 raise TypeError(
-                    f"The pipeline decorator only accepts functions. Passed {type(func)}"
+                    "The pipeline decorator only accepts functions. "
+                    f"Passed {type(func)}"
                 )
 
             _pipeline = Pipeline(
