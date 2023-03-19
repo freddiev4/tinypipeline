@@ -49,6 +49,24 @@ class Pipeline:
         """
         return self._func()
 
+    @property
+    def ordering(self) -> str:
+        """
+        The ordering of the steps in the pipeline. Either linear or nonlinear.
+
+        Returns
+        -------
+        str
+            'linear' or 'nonlinear'.
+        """
+        if isinstance(self.steps, List):
+            _ordering = 'linear'
+        elif isinstance(self.steps, Dict):
+            _ordering = 'nonlinear'
+        else:
+            raise TypeError("Pipeline steps must be in a list or a dict.")
+
+        return _ordering
 
     def __repr__(self):
         """
