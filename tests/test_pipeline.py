@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -128,6 +128,14 @@ def test_pipeline_completion_with_dict_ordering():
     mock_step_4.return_value = "step 4"
     mock_step_5.return_value = "step 5"
 
+    # set up a mock manager to track the calls to the steps
+    mock_manager = Mock()
+    mock_manager.attach_mock(mock_step_1, "step_one")
+    mock_manager.attach_mock(mock_step_2, "step_two")
+    mock_manager.attach_mock(mock_step_3, "step_three")
+    mock_manager.attach_mock(mock_step_4, "step_four")
+    mock_manager.attach_mock(mock_step_5, "step_five")
+
     @step(name="step_one", description="Step one", version="1.0.0")
     def step_one():
         mock_step_1()
@@ -175,12 +183,20 @@ def test_pipeline_completion_with_dict_ordering():
 
     steps = set(steps)
 
+    # check that the number of steps is correct
     assert len(steps) == 5
-    mock_step_1.assert_called_once()
-    mock_step_2.assert_called_once()
-    mock_step_3.assert_called_once()
-    mock_step_4.assert_called_once()
-    mock_step_5.assert_called_once()
+
+    # check that all of the steps were called in a particular order
+    # using the mock manager
+    expected_calls = [
+        call.step_five(),
+        call.step_two(),
+        call.step_three(),
+        call.step_four(),
+        call.step_one(),
+    ]
+
+    assert mock_manager.mock_calls == expected_calls
 
 def test_pipeline_failure_no_function_passed():
     """
