@@ -1,7 +1,7 @@
 import functools
 
 from datetime import datetime
-from typing import Callable
+from typing import Callable, Union, Dict, List
 
 from .step import Step
 
@@ -36,7 +36,19 @@ class Pipeline:
         self.version = version
         self.description = description
 
-        self.steps = self._get_steps()
+    @functools.cached_property
+    def steps(self) -> Union[List[Step], Dict[Step, Step]]:
+        """
+        The steps for the pipeline. Cached property so that the function
+        containing the steps is only called once.
+
+        Returns
+        -------
+        Union[List[Step], Dict[Step, Step]]
+            The steps for the pipeline.
+        """
+        return self._func()
+
 
     def __repr__(self):
         """
