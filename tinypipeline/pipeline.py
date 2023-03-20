@@ -1,7 +1,8 @@
 import functools
 
 from datetime import datetime
-from typing import Callable
+from graphlib import CycleError, TopologicalSorter
+from typing import Callable, Union, Dict, List
 
 from .step import Step
 
@@ -36,7 +37,37 @@ class Pipeline:
         self.version = version
         self.description = description
 
-        self.steps = self._get_steps()
+    @functools.cached_property
+    def steps(self) -> Union[List[Step], Dict[Step, Step]]:
+        """
+        The steps for the pipeline. Cached property so that the function
+        containing the steps is only called once.
+
+        Returns
+        -------
+        Union[List[Step], Dict[Step, Step]]
+            The steps for the pipeline.
+        """
+        return self._func()
+
+    @property
+    def ordering(self) -> str:
+        """
+        The ordering of the steps in the pipeline. Either linear or nonlinear.
+
+        Returns
+        -------
+        str
+            'linear' or 'nonlinear'.
+        """
+        if isinstance(self.steps, List):
+            _ordering = 'linear'
+        elif isinstance(self.steps, Dict):
+            _ordering = 'nonlinear'
+        else:
+            raise TypeError("Pipeline steps must be in a list or a dict.")
+
+        return _ordering
 
     def __repr__(self):
         """
@@ -46,14 +77,27 @@ class Pipeline:
 
     def _get_steps(self):
         """
-        Private method to get the steps for the pipeline.
+        Private method to order the steps for the pipeline.
+
+        Uses `self.steps` if the ordering is linear (a list of steps)
+        and uses a reversed topological sort on `self.steps` if the ordering
+        is nonlinear (a dictionary).
         """
-        _steps = self._func()
+        # if the steps are in a list, just return them in order
+        # in which they were defined
+        if self.ordering == 'linear':
+            _steps = self.steps
 
-        if not isinstance(_steps, list):
-            raise TypeError("Pipeline steps must be in a list.")
+        # if the steps are in a dictionary, return them in a topologically
+        # sorted order, based on the dependencies defined in the dictionary.
+        # then reverse the order since keys in the dictionary are the steps
+        # and values are the dependencies.
+        elif self.ordering == 'nonlinear':
+            ts = TopologicalSorter(graph=self.steps)
+            toposorted_steps = list(ts.static_order())
+            _steps = list(reversed(toposorted_steps))
 
-        if not all(isinstance(s, Step) for s in _steps):
+        if not all(isinstance(s, Step) for s in self.steps):
             raise TypeError(
                 "Not a valid step. Consider using the step decorator "
                 "to create steps for your pipeline."
@@ -77,7 +121,18 @@ class Pipeline:
         header = f"{border}" f"| Running pipeline: {str(self)} |\n" f"{border}"
         print(header)
 
-        for step in self.steps:
+        # run steps in linear or nonlinear order depending
+        # on the ordering property of the pipeline
+        try:
+            step_order = self._get_steps()
+        except CycleError:
+            print(
+                "Pipeline failed due to an exception in step ordering. "
+                "Try checking for circular dependencies in your steps.\n"
+            )
+            raise
+
+        for step in step_order:
             try:
                 print(f"Running step [{step.name}]...")
 
@@ -90,7 +145,6 @@ class Pipeline:
             except Exception:
                 print(f"Pipeline failed due to an exception in step [{step.name}]")
                 raise
-        return None
 
 
 def pipeline(

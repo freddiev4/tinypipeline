@@ -10,7 +10,7 @@ authors = [
 ]
 description = "A tiny mlops library for building machine learning pipelines on your local machine."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = ["mlops", "machine learning", "pipelines"]
 license = {text = "MIT"}
 classifiers = [

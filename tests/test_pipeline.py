@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import pytest
 
@@ -36,7 +36,7 @@ def test_pipeline_completion():
             description="Step two",
             version="1.0.0",
         )
-    
+
         step_three = step(
             callable=mock_step_3,
             name="step_three",
@@ -105,7 +105,98 @@ def test_pipeline_completion_using_step_decorator():
     assert len(pipe.steps) == 3
     mock_step_1.assert_called_once()
     mock_step_2.assert_called_once()
-    mock_step_3.assert_called_once() 
+    mock_step_3.assert_called_once()
+
+
+def test_pipeline_completion_with_dict_ordering():
+    """
+    Test that the pipeline runs all the steps in the correct order,
+    defined by a dictionary that has the steps as keys and the steps
+    that depend on them as values.
+
+    Ensure the topological ordering is correct.
+    """
+    mock_step_1 = Mock()
+    mock_step_2 = Mock()
+    mock_step_3 = Mock()
+    mock_step_4 = Mock()
+    mock_step_5 = Mock()
+
+    mock_step_1.return_value = "step 1"
+    mock_step_2.return_value = "step 2"
+    mock_step_3.return_value = "step 3"
+    mock_step_4.return_value = "step 4"
+    mock_step_5.return_value = "step 5"
+
+    # set up a mock manager to track the calls to the steps
+    mock_manager = Mock()
+    mock_manager.attach_mock(mock_step_1, "step_one")
+    mock_manager.attach_mock(mock_step_2, "step_two")
+    mock_manager.attach_mock(mock_step_3, "step_three")
+    mock_manager.attach_mock(mock_step_4, "step_four")
+    mock_manager.attach_mock(mock_step_5, "step_five")
+
+    @step(name="step_one", description="Step one", version="1.0.0")
+    def step_one():
+        mock_step_1()
+
+    @step(name="step_two", description="Step two", version="1.0.0")
+    def step_two():
+        mock_step_2()
+
+    @step(name="step_three", description="Step three", version="1.0.0")
+    def step_three():
+        mock_step_3()
+
+    @step(name="step_four", description="Step four", version="1.0.0")
+    def step_four():
+        mock_step_4()
+
+    @step(name="step_five", description="Step five", version="1.0.0")
+    def step_five():
+        mock_step_5()
+
+    @pipeline(
+        name="test_pipeline",
+        description="Test pipeline",
+        version="1.0.0",
+    )
+    def test_pipeline():
+        """
+        Run the steps in the following order:
+        step_five -> step_two -> step_three -> step_four -> step_one
+        """
+        return {
+            step_five: [step_two],
+            step_two: [step_three],
+            step_three: [step_four, step_one],
+            step_four: [step_one],
+        }
+
+    pipe = test_pipeline()
+    pipe.run()
+
+    steps = []
+    for key, value in pipe.steps.items():
+        steps.append(key)
+        steps.extend(value)
+
+    steps = set(steps)
+
+    # check that the number of steps is correct
+    assert len(steps) == 5
+
+    # check that all of the steps were called in a particular order
+    # using the mock manager
+    expected_calls = [
+        call.step_five(),
+        call.step_two(),
+        call.step_three(),
+        call.step_four(),
+        call.step_one(),
+    ]
+
+    assert mock_manager.mock_calls == expected_calls
 
 def test_pipeline_failure_no_function_passed():
     """
@@ -154,12 +245,22 @@ def test_pipeline_failure_invalid_step():
         == str(context.value)
     )
 
-def test_pipeline_failure_no_steps_list():
+def test_pipeline_failure_no_steps_list_or_dict():
     """
-    Test that the pipeline fails with a TypeError if there is no list of steps.
+    Test that the pipeline fails with a TypeError if there are no
+    steps in a list or a dictionary.
 
     Also check that the error message is correct.
     """
+    # create step one
+    @step(
+        name="step_one",
+        description="Step one",
+        version="1.0.0",
+    )
+    def step_one():
+        pass
+
 
     @pipeline(
         name="test_pipeline",
@@ -167,13 +268,13 @@ def test_pipeline_failure_no_steps_list():
         version="1.0.0",
     )
     def test_pipeline():
-        return "step_one"
+        return step_one
 
     with pytest.raises(TypeError) as context:
         pipe = test_pipeline()
         pipe.run()
 
-    assert "Pipeline steps must be in a list." == str(context.value)
+    assert "Pipeline steps must be in a list or a dict." == str(context.value)
 
 def test_pipeline_failure_no_steps_to_run():
     """

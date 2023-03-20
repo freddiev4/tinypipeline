@@ -28,6 +28,12 @@ class Step:
         self.version = version
         self.description = description
 
+    def __repr__(self):
+        """
+        Representation of the step.
+        """
+        return f"Step(name='{self.name}', version='{self.version}')"
+
     def run(self):
         """
         Run the step.
